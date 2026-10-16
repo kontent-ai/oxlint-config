@@ -1,0 +1,77 @@
+{
+	"name": "@kontent-ai/oxlint-config",
+	"version": "0.0.1",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/kontent-ai/oxlint-config"
+	},
+	"private": false,
+	"author": "Richard Sustek",
+	"license": "MIT",
+	"description": "Shared oxlint config and the kontent oxlint JS plugin used by Kontent.ai packages",
+	"keywords": [
+		"Kontent.ai",
+		"oxlint",
+		"oxlint-config",
+		"oxlint-plugin",
+		"lint"
+	],
+	"engines": {
+		"node": ">=22"
+	},
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/public_api.d.ts",
+			"default": "./dist/public_api.js"
+		},
+		"./plugin": {
+			"types": "./dist/kontent.oxlint-plugin.d.ts",
+			"default": "./dist/kontent.oxlint-plugin.js"
+		}
+	},
+	"type": "module",
+	"packageManager": "pnpm@11.22.0",
+	"sideEffects": false,
+	"scripts": {
+		"prepublishOnly": "pnpm run build && pnpm run test",
+		"build": "pnpm run lint && pnpm run clean && pnpm run build:ts",
+		"build:ts": "tsc -p tsconfig.build.json",
+		"test": "vitest run --config=vitest.config.ts --coverage",
+		"test:unit": "vitest run --config=vitest-unit.config.ts",
+		"lint": "pnpm run knip && pnpm run biome:check && pnpm run oxlint",
+		"oxlint": "oxlint --type-aware --type-check --deny-warnings lib tests scripts",
+		"knip": "knip",
+		"knip:production": "knip --production",
+		"biome:check": "biome check",
+		"biome:fix": "biome check --write",
+		"biome:fix:unsafe": "biome check --write --unsafe",
+		"clean": "tsx ./scripts/clean.ts",
+		"bump:patch": "pnpm run build && npm version patch -m \"v%s\" && pnpm run build:ts && git push --follow-tags",
+		"bump:minor": "pnpm run build && npm version minor -m \"v%s\" && pnpm run build:ts && git push --follow-tags",
+		"bump:major": "pnpm run build && npm version major -m \"v%s\" && pnpm run build:ts && git push --follow-tags"
+	},
+	"peerDependencies": {
+		"oxlint": "^1",
+		"oxlint-tsgolint": ">=7"
+	},
+	"peerDependenciesMeta": {
+		"oxlint-tsgolint": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.15",
+		"@kontent-ai/biome-config": "0.7.3",
+		"@types/node": "26.6.5",
+		"@vitest/coverage-v8": "5.0.4",
+		"knip": "6.41.0",
+		"oxlint": "1.88.0",
+		"oxlint-tsgolint": "7.0.2004",
+		"tsx": "4.23.15",
+		"typescript": "7.0.2",
+		"vitest": "5.0.4"
+	}
+}
