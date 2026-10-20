@@ -24,6 +24,7 @@ ruleTester.run(ruleName, rule, {
 		"type A = { readonly items: readonly string[]; readonly pair: readonly [string, number] };",
 		"type A = ReadonlyArray<string> | ReadonlyMap<string, number> | ReadonlySet<string>;",
 		"interface A { method(): void; }",
+		"type A = Immutable.Map<string, number>;",
 		"const acc: string[] = [];",
 		"const lookup: Map<string, number> = new Map();",
 		"function f(items: string[]): void {}",
