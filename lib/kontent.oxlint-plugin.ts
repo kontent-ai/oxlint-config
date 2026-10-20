@@ -4,22 +4,34 @@ export type ImportLikeNode = {
 	readonly specifiers?: readonly { readonly importKind?: "type" | "value" }[];
 };
 
+/**
+ * The subset of TypeScript type AST nodes inspected by `readonly-type-declarations`.
+ */
+export type TypeLikeNode = {
+	readonly type: string;
+	readonly readonly?: boolean;
+	readonly operator?: string;
+	readonly typeName?: { readonly type: string; readonly name?: string };
+	readonly parent?: TypeLikeNode;
+};
+
 type OxlintRuleContext = {
 	readonly report: (descriptor: { readonly node: unknown; readonly message: string }) => void;
 };
 
-type OxlintRule = {
-	readonly create: (context: OxlintRuleContext) => Readonly<Record<string, (node: ImportLikeNode) => void>>;
+type OxlintRule<TNode = ImportLikeNode> = {
+	readonly create: (context: OxlintRuleContext) => Readonly<Record<string, (node: TNode) => void>>;
 };
 
 type OxlintPlugin = {
 	readonly meta: { readonly name: string };
-	readonly rules: Readonly<Record<string, OxlintRule>>;
+	readonly rules: Readonly<Record<string, OxlintRule<never>>>;
 };
 
 const kontentOxlintPluginName = "kontent";
 const noNamedZodImportRuleName = "no-named-zod-import";
 const noStaticSchemaImportRuleName = "no-static-schema-import";
+const readonlyTypeDeclarationsRuleName = "readonly-type-declarations";
 
 const noNamedZodImportSelector = "ImportDeclaration[source.value=/^(zod(\\/mini)?|@zod\\/mini)$/] > ImportSpecifier[imported.name='z']";
 const noNamedZodImportMessage =
@@ -68,11 +80,63 @@ const noStaticSchemaImportRule: OxlintRule = {
 	},
 };
 
+/**
+ * Only type declarations are checked, so local accumulators such as `const acc: T[] = []` stay allowed.
+ * Parameters are covered by the type-aware `typescript/prefer-readonly-parameter-types`.
+ */
+const typeDeclarationSelectorPrefix = ":matches(TSInterfaceDeclaration, TSTypeAliasDeclaration) ";
+const readonlyOperator = "readonly";
+const identifierNodeType = "Identifier";
+const typeOperatorNodeType = "TSTypeOperator";
+
+const mutableToReadonlyCollection: ReadonlyMap<string, string> = new Map([
+	["Array", "ReadonlyArray"],
+	["Map", "ReadonlyMap"],
+	["Set", "ReadonlySet"],
+]);
+
+const missingReadonlyMemberMessage = "Mark this property as `readonly`.";
+const mutableArrayMessage = "Use a readonly array or tuple type (`readonly T[]` / `readonly [A, B]`).";
+const mutableCollectionMessage = (mutableName: string, readonlyName: string): string =>
+	`Use \`${readonlyName}\` instead of \`${mutableName}\`.`;
+
+const isReadonlyOperand = (node: TypeLikeNode): boolean =>
+	node.parent?.type === typeOperatorNodeType && node.parent.operator === readonlyOperator;
+
+const referencedIdentifierName = (node: TypeLikeNode): string | undefined =>
+	node.typeName?.type === identifierNodeType ? node.typeName.name : undefined;
+
+const readonlyTypeDeclarationsRule: OxlintRule<TypeLikeNode> = {
+	create: (context) => ({
+		[`${typeDeclarationSelectorPrefix}:matches(TSPropertySignature, TSIndexSignature)`]: (node) => {
+			if (node.readonly === true) {
+				return;
+			}
+			context.report({ node, message: missingReadonlyMemberMessage });
+		},
+		[`${typeDeclarationSelectorPrefix}:matches(TSArrayType, TSTupleType)`]: (node) => {
+			if (isReadonlyOperand(node)) {
+				return;
+			}
+			context.report({ node, message: mutableArrayMessage });
+		},
+		[`${typeDeclarationSelectorPrefix}TSTypeReference`]: (node) => {
+			const mutableName = referencedIdentifierName(node);
+			const readonlyName = mutableName === undefined ? undefined : mutableToReadonlyCollection.get(mutableName);
+			if (mutableName === undefined || readonlyName === undefined) {
+				return;
+			}
+			context.report({ node, message: mutableCollectionMessage(mutableName, readonlyName) });
+		},
+	}),
+};
+
 const kontentOxlintPlugin = {
 	meta: { name: kontentOxlintPluginName },
 	rules: {
 		[noNamedZodImportRuleName]: noNamedZodImportRule,
 		[noStaticSchemaImportRuleName]: noStaticSchemaImportRule,
+		[readonlyTypeDeclarationsRuleName]: readonlyTypeDeclarationsRule,
 	},
 } as const satisfies OxlintPlugin;
 

@@ -50,6 +50,7 @@ export default defineConfig({
   rules: {
     "kontent/no-named-zod-import": "error",
     "kontent/no-static-schema-import": "error",
+    "kontent/readonly-type-declarations": "error",
   },
 });
 ```
@@ -58,12 +59,15 @@ The plugin object is also exported as `kontentOxlintPlugin` from the package roo
 
 ## Rules
 
-The `kontent` plugin provides these rules (both enabled as `error` in `kontentOxlintConfig`):
+The `kontent` plugin provides these rules (all enabled as `error` in `kontentOxlintConfig`):
 
 | Rule | What it enforces |
 | --- | --- |
 | `kontent/no-named-zod-import` | Import zod as a namespace (`import * as z from "@zod/mini"`), not as `import { z }`, which defeats tree-shaking. |
 | `kontent/no-static-schema-import` | Schema modules (`*.schema.js` / `*.schemas.js`) are loaded with a dynamic `await import(...)`, not a static import or re-export, so they stay out of the main bundle. Type-only imports are allowed. |
+| `kontent/readonly-type-declarations` | Inside `type` and `interface` declarations: properties and index signatures are `readonly`, arrays and tuples use the `readonly` operator, and `Array` / `Map` / `Set` are replaced by `ReadonlyArray` / `ReadonlyMap` / `ReadonlySet`. |
+
+`kontent/readonly-type-declarations` is a syntactic stand-in for `functional/type-declaration-immutability`: oxlint JS plugins cannot use type information, so it does not check whether referenced types are deeply immutable. It also ignores mapped types, class fields and local annotations (such as a `const acc: T[] = []` accumulator). Function parameters are covered by the type-aware `typescript/prefer-readonly-parameter-types`, also enabled in `kontentOxlintConfig`; it runs only with `--type-aware` and `oxlint-tsgolint` installed.
 
 ## License
 

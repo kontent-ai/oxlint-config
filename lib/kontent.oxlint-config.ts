@@ -51,8 +51,10 @@ export const kontentOxlintConfig = {
 		"typescript/promise-function-async": "error",
 		"typescript/no-mixed-enums": "error",
 		"typescript/no-unsafe-enum-comparison": "error",
+		"typescript/prefer-readonly-parameter-types": "error",
 
 		"kontent/no-named-zod-import": "error",
 		"kontent/no-static-schema-import": "error",
+		"kontent/readonly-type-declarations": "error",
 	},
 } as const satisfies OxlintConfig;
