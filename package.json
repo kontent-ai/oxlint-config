@@ -49,9 +49,9 @@
 		"biome:fix": "biome check --write",
 		"biome:fix:unsafe": "biome check --write --unsafe",
 		"clean": "tsx ./scripts/clean.ts",
-		"bump:patch": "pnpm run build && npm version patch -m \"v%s\" && pnpm run build:ts && git push --follow-tags",
-		"bump:minor": "pnpm run build && npm version minor -m \"v%s\" && pnpm run build:ts && git push --follow-tags",
-		"bump:major": "pnpm run build && npm version major -m \"v%s\" && pnpm run build:ts && git push --follow-tags"
+		"bump:patch": "pnpm run test && pnpm run build && npm version patch -m \"v%s\" git push --follow-tags",
+		"bump:minor": "pnpm run test && pnpm run build && npm version minor -m \"v%s\" git push --follow-tags",
+		"bump:major": "pnpm run test && pnpm run build && npm version major -m \"v%s\" git push --follow-tags"
 	},
 	"peerDependencies": {
 		"oxlint": "^1",
