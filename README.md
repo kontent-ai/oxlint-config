@@ -67,7 +67,67 @@ The `kontent` plugin provides these rules (all enabled as `error` in `kontentOxl
 | `kontent/no-static-schema-import` | Schema modules (`*.schema.js` / `*.schemas.js`) are loaded with a dynamic `await import(...)`, not a static import or re-export, so they stay out of the main bundle. Type-only imports are allowed. |
 | `kontent/readonly-type-declarations` | Inside `type` and `interface` declarations: properties and index signatures are `readonly`, arrays and tuples use the `readonly` operator, and `Array` / `Map` / `Set` are replaced by `ReadonlyArray` / `ReadonlyMap` / `ReadonlySet`. |
 
-`kontent/readonly-type-declarations` is a syntactic stand-in for `functional/type-declaration-immutability`: oxlint JS plugins cannot use type information, so it does not check whether referenced types are deeply immutable. It also ignores mapped types, class fields and local annotations (such as a `const acc: T[] = []` accumulator). Function parameters are covered by the type-aware `typescript/prefer-readonly-parameter-types`, also enabled in `kontentOxlintConfig`; it runs only with `--type-aware` and `oxlint-tsgolint` installed.
+### `kontent/readonly-type-declarations`
+
+Enforces immutability in `type` and `interface` declarations. It is a syntactic stand-in for ESLint's [`functional/type-declaration-immutability`](https://github.com/eslint-functional/eslint-plugin-functional/blob/main/docs/rules/type-declaration-immutability.md), which oxlint cannot run because JS plugins have no access to type information.
+
+Inside a `type` or `interface` declaration (including nested type literals, unions and generics), it reports:
+
+| Reported | Use instead |
+| --- | --- |
+| Property or index signature without `readonly` (`a: string`, `[key: string]: string`) | `readonly a: string`, `readonly [key: string]: string` |
+| Mutable array or tuple (`string[]`, `[string, number]`) | `readonly string[]`, `readonly [string, number]` |
+| `Array<T>`, `Map<K, V>`, `Set<T>` | `ReadonlyArray<T>`, `ReadonlyMap<K, V>`, `ReadonlySet<T>` |
+
+Examples of **incorrect** code:
+
+```typescript
+interface User {
+  name: string;
+  tags: string[];
+}
+
+type Lookup = {
+  readonly byId: Map<string, User>;
+  readonly matrix: readonly string[][]; // the inner array is still mutable
+};
+```
+
+Examples of **correct** code:
+
+```typescript
+interface User {
+  readonly name: string;
+  readonly tags: readonly string[];
+  update(): void; // method signatures cannot be readonly and are ignored
+}
+
+type Lookup = {
+  readonly byId: ReadonlyMap<string, User>;
+  readonly matrix: readonly (readonly string[])[];
+};
+
+type External = Immutable.Map<string, number>; // qualified names are not checked
+
+const acc: string[] = []; // local annotations outside type declarations are allowed
+```
+
+Limitations:
+
+- It does not check whether a referenced type is itself deeply immutable (for example `readonly user: User` passes even if `User` has mutable properties). Each declaration is checked on its own.
+- It ignores mapped types (`{ [K in Keys]: T }`), class fields and annotations outside `type` / `interface` declarations, such as variables, parameters and return types.
+- Function parameters are covered by the type-aware `typescript/prefer-readonly-parameter-types`, also enabled in `kontentOxlintConfig`. It runs only with `--type-aware` and `oxlint-tsgolint` installed.
+
+To turn the rule off, override it in your config:
+
+```typescript
+export default defineConfig({
+  extends: [kontentOxlintConfig],
+  rules: {
+    "kontent/readonly-type-declarations": "off",
+  },
+});
+```
 
 ## License
 
