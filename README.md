@@ -116,7 +116,7 @@ Limitations:
 
 - It does not check whether a referenced type is itself deeply immutable (for example `readonly user: User` passes even if `User` has mutable properties). Each declaration is checked on its own.
 - It ignores mapped types (`{ [K in Keys]: T }`), class fields and annotations outside `type` / `interface` declarations, such as variables, parameters and return types.
-- Function parameters are covered by the type-aware `typescript/prefer-readonly-parameter-types`, also enabled in `kontentOxlintConfig`. It runs only with `--type-aware` and `oxlint-tsgolint` installed.
+- Function parameters are covered by the type-aware `typescript/prefer-readonly-parameter-types`, also enabled in `kontentOxlintConfig` (see [Readonly parameters](#readonly-parameters)).
 
 To turn the rule off, override it in your config:
 
@@ -125,6 +125,41 @@ export default defineConfig({
   extends: [kontentOxlintConfig],
   rules: {
     "kontent/readonly-type-declarations": "off",
+  },
+});
+```
+
+### Readonly parameters
+
+`kontentOxlintConfig` enables the type-aware [`typescript/prefer-readonly-parameter-types`](https://oxc.rs/docs/guide/usage/linter/rules/typescript/prefer-readonly-parameter-types) with the options exported as `kontentPreferReadonlyParameterTypesOptions`. It runs only with `--type-aware` and `oxlint-tsgolint` installed.
+
+Some built-in types can never be readonly, so by default the rule reports every parameter that uses them, even in code you can't change. The shared options exempt them:
+
+- `treatMethodsAsReadonly: true`: classes that are mutable only through methods (`Blob`, `Date`, `Promise`, `Headers`, ...) are not reported. Trade-off: a `Map` or `Set` parameter is not reported either. Arrays and object types are still checked.
+- `allow`: `URL`, `AbortSignal`, `Error` and `RegExp` have settable properties. They are allowed both from TypeScript's built-in lib (`from: "lib"` means TypeScript's `lib.*.d.ts` files, not a folder in your project) and from `@types/node`, because which one declares these globals depends on your tsconfig.
+
+To allow your own or 3rd-party types, extend the shared options. A rule override replaces the shared options completely, so spread them instead of starting from scratch:
+
+```typescript
+import { kontentOxlintConfig, kontentPreferReadonlyParameterTypesOptions } from "@kontent-ai/oxlint-config";
+import { defineConfig } from "oxlint";
+
+export default defineConfig({
+  extends: [kontentOxlintConfig],
+  rules: {
+    "typescript/prefer-readonly-parameter-types": [
+      "error",
+      {
+        ...kontentPreferReadonlyParameterTypesOptions,
+        allow: [
+          ...kontentPreferReadonlyParameterTypesOptions.allow,
+          // a type declared in this repository
+          { from: "file", name: "KontentSdkError", path: "lib/models/error.models.ts" },
+          // types from a 3rd-party package
+          { from: "package", package: "rxjs", name: ["Observable", "Subject"] },
+        ],
+      },
+    ],
   },
 });
 ```
