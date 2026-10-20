@@ -10,46 +10,6 @@ const pluginFileBaseName = "kontent.oxlint-plugin";
  */
 const resolvePluginPath = (): string => fileURLToPath(new URL(`./${pluginFileBaseName}${extname(import.meta.url)}`, import.meta.url));
 
-// oxlint's rule typings (checked through `satisfies OxlintConfig` below) declare the option arrays as mutable,
-// so readonly arrays are not assignable to them.
-/* oxlint-disable kontent/readonly-type-declarations */
-type BuiltInTypeSpecifier =
-	| { readonly from: "lib"; readonly name: string[] }
-	| { readonly from: "package"; readonly package: string; readonly name: string[] };
-
-type PreferReadonlyParameterTypesOptions = {
-	readonly treatMethodsAsReadonly: boolean;
-	readonly allow: BuiltInTypeSpecifier[];
-};
-/* oxlint-enable kontent/readonly-type-declarations */
-
-/**
- * Built-in global types with settable properties. They can't be made readonly,
- * so parameters of these types would always be reported.
- */
-const mutableBuiltInTypeNames = ["URL", "AbortSignal", "Error", "RegExp"] as const;
-
-/**
- * Depending on the consumer's tsconfig, globals such as `URL` are declared by Node's typings instead of TypeScript's lib.
- */
-const nodeTypesPackageName = "@types/node";
-
-/**
- * Options of `typescript/prefer-readonly-parameter-types` used by `kontentOxlintConfig`.
- *
- * `from: "lib"` matches types from TypeScript's built-in `lib.*.d.ts` files, not a project folder.
- * Methods are treated as readonly so method-only classes (`Blob`, `Date`, `Promise`, ...) are not reported.
- *
- * Overriding the rule replaces these options, so spread them to add repo-specific types.
- */
-export const kontentPreferReadonlyParameterTypesOptions: PreferReadonlyParameterTypesOptions = {
-	treatMethodsAsReadonly: true,
-	allow: [
-		{ from: "lib", name: [...mutableBuiltInTypeNames] },
-		{ from: "package", package: nodeTypesPackageName, name: [...mutableBuiltInTypeNames] },
-	],
-};
-
 /**
  * Shared oxlint configuration for Kontent.ai SDKs.
  *
@@ -91,7 +51,6 @@ export const kontentOxlintConfig = {
 		"typescript/promise-function-async": "error",
 		"typescript/no-mixed-enums": "error",
 		"typescript/no-unsafe-enum-comparison": "error",
-		"typescript/prefer-readonly-parameter-types": ["error", kontentPreferReadonlyParameterTypesOptions],
 
 		"kontent/no-named-zod-import": "error",
 		"kontent/no-static-schema-import": "error",

@@ -82,7 +82,6 @@ const noStaticSchemaImportRule: OxlintRule = {
 
 /**
  * Only type declarations are checked, so local accumulators such as `const acc: T[] = []` stay allowed.
- * Parameters are covered by the type-aware `typescript/prefer-readonly-parameter-types`.
  */
 const typeDeclarationSelectorPrefix = ":matches(TSInterfaceDeclaration, TSTypeAliasDeclaration) ";
 const readonlyOperator = "readonly";
